@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Strategy Battle Arena</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+      background-color: #333;
+    }
+    canvas {
+      display: block;
+    }
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<div class="controls">
+  <button onclick="spawnUnit()">Spawn Unit</button>
+  <button onclick="startBattle()">Start Battle</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  let playerUnits = [];
+  let aiUnits = [];
+  let isBattleStarted = false;
+
+  // Basic Unit class
+  class Unit {
+    constructor(x, y, team) {
+      this.x = x;
+      this.y = y;
+      this.size = 20;
+      this.health = 100;
+      this.team = team; // "player" or "ai"
+      this.color = team === 'player' ? 'blue' : 'red';
+    }
+
+    draw() {
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    moveToward(target) {
+      const dx = target.x - this.x;
+      const dy = target.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > 1) {
+        this.x += dx / dist;
+        this.y += dy / dist;
+      }
+    }
+
+    attack(target) {
+      if (Math.abs(this.x - target.x) < 30 && Math.abs(this.y - target.y) < 30) {
+        target.health -= 1;
+      }
+    }
+
+    update(targets) {
+      if (this.health <= 0) return; // Dead units don't do anything
+
+      if (targets.length > 0) {
+        const target = targets[0]; // Attack the first enemy found
+        this.moveToward(target);
+        this.attack(target);
+      }
+
+      this.draw();
+    }
+  }
+
+  // AI learns from player strategy and adapts
+  function aiAdaptation() {
+    // Simple adaptation for now: If player spams a lot of units, AI will counter with more units
+    if (playerUnits.length > aiUnits.length) {
+      spawnAIUnit();
+    }
+  }
+
+  // Spawning a player unit
+  function spawnUnit() {
+    const unit = new Unit(Math.random() * canvas.width, Math.random() * canvas.height, 'player');
+    playerUnits.push(unit);
+  }
+
+  // Spawning an AI unit
+  function spawnAIUnit() {
+    const aiUnit = new Unit(Math.random() * canvas.width, Math.random() * canvas.height, 'ai');
+    aiUnits.push(aiUnit);
+  }
+
+  // Start the battle and let AI adapt
+  function startBattle() {
+    isBattleStarted = true;
+    aiAdaptation();
+  }
+
+  // Main game loop
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (isBattleStarted) {
+      playerUnits.forEach(unit => unit.update(aiUnits));
+      aiUnits.forEach(unit => unit.update(playerUnits));
+    }
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Initialize the game
+  gameLoop();
+</script>
+
+</body>
+</html>
